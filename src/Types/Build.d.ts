@@ -14,6 +14,7 @@ export interface BuildSetting {
     plume?: never,
   },
   optimizationTarget?: string[],
+  optimizationTargetRatio?: number,
   mainStatAssumptionLevel: number,
   useExcludedArts: boolean,
   useEquippedArts: boolean,

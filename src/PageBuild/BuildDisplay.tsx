@@ -123,7 +123,23 @@ export default function BuildDisplay({ location: { characterKey: propCharacterKe
   const characterDispatch = useCharacterReducer(characterKey)
   const character = useCharacter(characterKey)
   const buildSettings = character?.buildSettings ?? initialBuildSettings()
-  const { plotBase, setFilters, statFilters, mainStatKeys, optimizationTarget, mainStatAssumptionLevel, useExcludedArts, useEquippedArts, builds, buildDate, maxBuildsToShow, levelLow, levelHigh } = buildSettings
+  // TODO:
+  // Setup database, migration, and UI for optimizationTargetRatio
+  //
+  // Description:
+  // The custom optimization target min filter, where
+  //
+  //   threshold = current build's optimizationTarget * optimizationTargetRatio
+  //
+  // Set the ratio to a falsy value to disable this filter. This is performance
+  // optimization. So we should have only a few options with high ratio,
+  // potentially [0, 0.9, 0.95, 0.99, 0.9999].
+  //
+  // CAUTION:
+  // DO NOT use 1.0 (100%) as the sanity check for such value (should always contain
+  // current build, should have at least 1 build, etc) requires a very precise
+  // rounding, and we are not willing to guarantee such precision.
+  const { plotBase, setFilters, statFilters, mainStatKeys, optimizationTarget, optimizationTargetRatio = 0.9999, mainStatAssumptionLevel, useExcludedArts, useEquippedArts, builds, buildDate, maxBuildsToShow, levelLow, levelHigh } = buildSettings
   const buildsArts = useMemo(() => builds.map(build => build.map(i => database._getArt(i)!)), [builds, database])
   const teamData = useTeamData(characterKey, mainStatAssumptionLevel)
   const { characterSheet, target: data } = teamData?.[characterKey as CharacterKey] ?? {}
@@ -171,6 +187,12 @@ export default function BuildDisplay({ location: { characterKey: propCharacterKe
     const totBuildNumber = [...setPerms].map(perm => countBuilds(filterArts(split, perm))).reduce((a, b) => a + b, 0)
     return artsDirty && { split, setPerms, totBuildNumber }
   }, [characterKey, useExcludedArts, useEquippedArts, mainStatKeys, setFilters, levelLow, levelHigh, artsDirty, database, mainStatAssumptionLevel])
+  const optimizationTargetThreshold = useMemo(() => {
+    if (!optimizationTarget || !optimizationTargetRatio) return
+    const current: number | undefined = objPathValue(data?.getDisplay(), optimizationTarget)?.value
+    if (!current) return
+    return current * optimizationTargetRatio
+  }, [optimizationTarget, optimizationTargetRatio, data])
 
   // Reset the Alert by setting progress to zero.
   useEffect(() => {
@@ -206,7 +228,7 @@ export default function BuildDisplay({ location: { characterKey: propCharacterKe
     const cancelled = new Promise<void>(r => cancelToken.current = r)
 
     let nodes = [...valueFilter.map(x => x.value), optimizationTargetNode], arts = split!
-    const origCount = totBuildNumber, minimum = [...valueFilter.map(x => x.minimum), -Infinity]
+    const origCount = totBuildNumber, minimum = [...valueFilter.map(x => x.minimum), optimizationTargetThreshold ?? -Infinity]
     if (plotBase) {
       nodes.push(input.total[plotBase])
       minimum.push(-Infinity)
@@ -219,7 +241,7 @@ export default function BuildDisplay({ location: { characterKey: propCharacterKe
     }))
 
     const plotBaseNode = plotBase ? nodes.pop() : undefined
-    optimizationTargetNode = nodes.pop()!
+    optimizationTargetNode = nodes[nodes.length - 1]
 
     let wrap = {
       buildCount: 0, failedCount: 0, skippedCount: origCount,
@@ -339,7 +361,7 @@ export default function BuildDisplay({ location: { characterKey: propCharacterKe
       })
     }
     setgeneratingBuilds(false)
-  }, [characterKey, database, totBuildNumber, mainStatAssumptionLevel, maxBuildsToShow, optimizationTarget, plotBase, setPerms, split, buildSettingsDispatch, setFilters, statFilters, maxWorkers])
+  }, [characterKey, database, totBuildNumber, mainStatAssumptionLevel, maxBuildsToShow, optimizationTarget, optimizationTargetThreshold, plotBase, setPerms, split, buildSettingsDispatch, setFilters, statFilters, maxWorkers])
 
   const characterName = characterSheet?.name ?? "Character Name"
 
