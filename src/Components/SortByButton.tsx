@@ -15,7 +15,7 @@ type SortByButtonProps = ButtonGroupProps & {
 export default function SortByButton({ sortKeys, value, onChange, ascending, onChangeAsc, ...props }: SortByButtonProps) {
   const { t } = useTranslation("ui")
   return <ButtonGroup {...props} >
-    <DropdownButton title={<Trans t={t} i18nKey="sortByFormat" value={t(`sortMap.${value}`) as any}>Sort By: {{ value: t(`sortMap.${value}`) }}</Trans>}>
+    <DropdownButton title={<Trans t={t} i18nKey="sortByFormat" value={t(`sortMap.${value}`) as any} />}>
       {sortKeys.map(key =>
         <MenuItem key={key} selected={value === key} disabled={value === key} onClick={() => onChange(key)}>{t(`sortMap.${key}`) as any}</MenuItem>)}
     </DropdownButton>

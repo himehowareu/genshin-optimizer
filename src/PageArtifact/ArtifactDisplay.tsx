@@ -218,7 +218,8 @@ export default function ArtifactDisplay() {
 function ShowingArt({ count, page, onChange, numShowing, total, t }) {
   return <Typography color="text.secondary">
     <Trans t={t} i18nKey="showingNum" count={numShowing} value={total} >
-      Showing <b>{{ count: numShowing }}</b> out of {{ value: total }} Artifacts
+      {/* TODO: as any https://github.com/i18next/react-i18next/pull/1486 */}
+      Showing <b>{{ count: numShowing } as any}</b> out of {{ value: total } as any} Artifacts
     </Trans>
   </Typography>
 }
